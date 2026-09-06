@@ -1,9 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
+import apiClient from "../services/api";
 
 const AuthContext = createContext(null);
-
-const API_BASE = "/api";
 
 export function AuthProvider({ children }) {
   // Get saved authentication data
@@ -28,8 +26,8 @@ export function AuthProvider({ children }) {
    */
   const fetchProfile = async (authToken) => {
     try {
-      const response = await axios.get(
-        `${API_BASE}/auth/profile?t=${Date.now()}`,
+      const response = await apiClient.get(
+        `/auth/profile?t=${Date.now()}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -79,13 +77,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const initializeAuth = async () => {
       if (!token) {
-        delete axios.defaults.headers.common["Authorization"];
+        delete apiClient.defaults.headers.common["Authorization"];
         setLoading(false);
         return;
       }
 
       // Set Authorization header
-      axios.defaults.headers.common["Authorization"] =
+      apiClient.defaults.headers.common["Authorization"] =
         `Bearer ${token}`;
 
       // If user exists in localStorage, keep it immediately
@@ -115,8 +113,8 @@ export function AuthProvider({ children }) {
     try {
       console.log("LOGIN STARTED");
 
-      const response = await axios.post(
-        `${API_BASE}/auth/login`,
+      const response = await apiClient.post(
+        `/auth/login`,
         {
           email: email.trim(),
           password,
@@ -176,7 +174,7 @@ export function AuthProvider({ children }) {
       /*
        * Set Axios Authorization header immediately
        */
-      axios.defaults.headers.common["Authorization"] =
+      apiClient.defaults.headers.common["Authorization"] =
         `Bearer ${newToken}`;
 
       console.log("TOKEN SAVED");
@@ -198,7 +196,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        delete axios.defaults.headers.common[
+        delete apiClient.defaults.headers.common[
           "Authorization"
         ];
 
@@ -222,8 +220,8 @@ export function AuthProvider({ children }) {
     try {
       console.log("REGISTRATION STARTED");
 
-      const response = await axios.post(
-        `${API_BASE}/auth/register`,
+      const response = await apiClient.post(
+        `/auth/register`,
         {
           name: name.trim(),
           email: email.trim(),
@@ -264,7 +262,7 @@ export function AuthProvider({ children }) {
 
         setToken(newToken);
 
-        axios.defaults.headers.common[
+        apiClient.defaults.headers.common[
           "Authorization"
         ] = `Bearer ${newToken}`;
       }
@@ -303,7 +301,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    delete axios.defaults.headers.common[
+    delete apiClient.defaults.headers.common[
       "Authorization"
     ];
 
