@@ -59,7 +59,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(nameVal.value, emailVal.value, form.password);
+      await register(nameVal.value, emailVal.value, form.password, form.confirm);
       navigate("/onboarding");
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Registration failed. Please try again.");
