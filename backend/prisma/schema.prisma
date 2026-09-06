@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  matches      JobMatch[]
+  resumes      Resume[]
+
+  @@map("users")
+}
+
+model Resume {
+  id              String        @id @default(cuid())
+  userId          String
+  fileName        String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  parsedText      String?
+  extractedSkills String[]      @default([])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  skills          ResumeSkill[]
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("resumes")
+}
+
+model Skill {
+  id       Int           @id @default(autoincrement())
+  name     String        @unique
+  category String?
+  jobs     JobSkill[]
+  resumes  ResumeSkill[]
+
+  @@map("skills")
+}
+
+model ResumeSkill {
+  id          Int     @id @default(autoincrement())
+  resumeId    String
+  skillId     Int
+  proficiency String?
+  resume      Resume  @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  skill       Skill   @relation(fields: [skillId], references: [id])
+
+  @@unique([resumeId, skillId])
+  @@index([skillId])
+  @@map("resume_skills")
+}
+
+model Job {
+  id          String     @id @default(cuid())
+  title       String
+  company     String
+  description String
+  location    String?
+  salary      String?
+  jobUrl      String?
+  postedDate  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  matches     JobMatch[]
+  skills      JobSkill[]
+
+  @@map("jobs")
+}
+
+model JobSkill {
+  id       Int     @id @default(autoincrement())
+  jobId    String
+  skillId  Int
+  required Boolean @default(false)
+  level    String?
+  job      Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill    Skill   @relation(fields: [skillId], references: [id])
+
+  @@unique([jobId, skillId])
+  @@index([skillId])
+  @@map("job_skills")
+}
+
+model JobMatch {
+  id            String   @id @default(cuid())
+  userId        String
+  jobId         String
+  matchScore    Float
+  matchedSkills String[] @default([])
+  missingSkills String[] @default([])
+  aiAnalysis    String?
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("job_matches")
+}
