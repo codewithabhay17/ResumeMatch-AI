@@ -12,12 +12,12 @@ async function uploadResume(userId, file, parsedText) {
     // Extract skills from parsed text (basic extraction)
     const extractedSkills = extractSkills(parsedText);
 
-    // Create resume record
+    // Create resume record — store filename only, not the absolute server path
     const resume = await prisma.resume.create({
       data: {
         userId,
         fileName: file.originalname,
-        filePath: file.path,
+        filePath: file.filename,   // filename only (e.g. "1234567890-resume.pdf"), not absolute path
         fileSize: file.size,
         mimeType: file.mimetype,
         parsedText,

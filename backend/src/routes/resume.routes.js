@@ -1,5 +1,7 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const {
@@ -10,10 +12,20 @@ const {
   analyzeResumeController,
 } = require('../controllers/resume.controller');
 
-// Configure multer for file uploads
+// Absolute path to uploads directory — works on both Windows dev and Render Linux
+// __dirname = backend/src/routes, so we go up two levels to backend/, then uploads/
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+
+// Ensure uploads directory exists before any request is handled
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('[upload] Created uploads directory:', uploadsDir);
+}
+
+// Configure multer for file uploads — use absolute path so file is always findable
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const timestamp = Date.now();

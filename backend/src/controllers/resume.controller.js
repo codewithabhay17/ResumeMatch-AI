@@ -1,12 +1,17 @@
 const resumeService = require('../services/resume.service');
 const pdfParse = require('pdf-parse');
+const fsSync = require('fs');
 const fs = require('fs').promises;
 const { analyzeResume } = require('../services/ai-resume.service');
 
 /**
  * Upload resume controller
+ * Uses req.file.path (absolute) set by multer — never reconstructs a relative path.
  */
 async function uploadResumeController(req, res) {
+  // Track the absolute file path so we can clean it up in finally{}
+  const filePath = req.file ? req.file.path : null;
+
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -15,21 +20,36 @@ async function uploadResumeController(req, res) {
       });
     }
 
-    // Parse PDF if needed
+    // Verify the file actually exists on disk before trying to read it
+    if (!fsSync.existsSync(filePath)) {
+      console.error('[upload] File not found after multer write:', filePath);
+      return res.status(500).json({
+        status: 'error',
+        message: 'File upload failed — could not locate uploaded file.',
+      });
+    }
+
+    // Parse the file content
     let parsedText = '';
     if (req.file.mimetype === 'application/pdf') {
       try {
-        const fileBuffer = await fs.readFile(req.file.path);
+        const fileBuffer = await fs.readFile(filePath);
         const pdfData = await pdfParse(fileBuffer);
-        parsedText = pdfData.text;
+        parsedText = pdfData.text || '';
       } catch (pdfError) {
-        console.error('PDF parsing error:', pdfError);
-        parsedText = req.file.originalname; // Fallback
+        console.error('[upload] PDF parsing error:', pdfError.message);
+        parsedText = ''; // Continue — AI analysis will handle empty text gracefully
       }
     } else if (req.file.mimetype === 'text/plain') {
-      parsedText = await fs.readFile(req.file.path, 'utf-8');
+      try {
+        parsedText = await fs.readFile(filePath, 'utf-8');
+      } catch (txtError) {
+        console.error('[upload] TXT read error:', txtError.message);
+        parsedText = '';
+      }
     }
 
+    // Save to database — pass filename only (not the full filesystem path)
     const resume = await resumeService.uploadResume(
       req.user.id,
       req.file,
@@ -42,12 +62,21 @@ async function uploadResumeController(req, res) {
       data: resume,
     });
   } catch (error) {
+    console.error('[upload] Unexpected error:', error.message);
     res.status(400).json({
       status: 'error',
       message: error.message,
     });
+  } finally {
+    // Always clean up the temp file — Render's filesystem is ephemeral anyway
+    if (filePath && fsSync.existsSync(filePath)) {
+      fs.unlink(filePath).catch((e) =>
+        console.warn('[upload] Could not delete temp file:', e.message)
+      );
+    }
   }
 }
+
 
 /**
  * Get user resumes controller
