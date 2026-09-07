@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { resumeAPI } from "../services/api";
+import { resumeAPI, careerAdvisorAPI } from "../services/api";
 
 function CircleProgress({ value, size = 100, stroke = 8, color = "#0284c7" }) {
   const r = (size - stroke) / 2;
@@ -48,6 +48,16 @@ export default function ResumeAnalysis() {
   const [aiError, setAiError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Feature 1: AI Career Advisor
+  const [careerData, setCareerData] = useState(null);
+  const [careerLoading, setCareerLoading] = useState(false);
+  const [careerError, setCareerError] = useState("");
+
+  // Feature 2: AI Resume Improver
+  const [improvedResume, setImprovedResume] = useState(null);
+  const [improverLoading, setImproverLoading] = useState(false);
+  const [improverError, setImproverError] = useState("");
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -56,6 +66,11 @@ export default function ResumeAnalysis() {
     }).catch((err) => {
       if (active) setError(err?.response?.data?.message || 'Could not load this resume.');
     }).finally(() => { if (active) setLoading(false); });
+
+    careerAdvisorAPI.get(id).then((res) => {
+      if (active && res.data?.data) setCareerData(res.data.data);
+    }).catch(() => {});
+
     return () => { active = false; };
   }, [id]);
 
@@ -79,6 +94,32 @@ export default function ResumeAnalysis() {
     await navigator.clipboard?.writeText(resume.parsedText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+  };
+
+  const runCareerAnalysis = async () => {
+    setCareerLoading(true);
+    setCareerError("");
+    try {
+      const res = await careerAdvisorAPI.analyze(id);
+      setCareerData(res.data?.data);
+    } catch (err) {
+      setCareerError(err?.response?.data?.message || "Failed to analyze career.");
+    } finally {
+      setCareerLoading(false);
+    }
+  };
+
+  const runImproveResume = async () => {
+    setImproverLoading(true);
+    setImproverError("");
+    try {
+      const res = await resumeAPI.improve(id);
+      setImprovedResume(res.data?.data);
+    } catch (err) {
+      setImproverError(err?.response?.data?.message || "Failed to improve resume.");
+    } finally {
+      setImproverLoading(false);
+    }
   };
 
   if (loading) {
@@ -163,6 +204,26 @@ export default function ResumeAnalysis() {
               >
                 <span className="material-symbols-outlined text-sm">{copied ? "check" : "content_copy"}</span>
                 {copied ? "Copied!" : "Copy Text"}
+              </button>
+              <button
+                onClick={runCareerAnalysis}
+                disabled={careerLoading}
+                className="flex items-center gap-space-xs px-space-md py-space-sm rounded-xl bg-purple-600 text-white font-headline-sm text-body-sm font-bold shadow-md shadow-purple-600/20 hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed relative z-10"
+              >
+                <span className={`material-symbols-outlined text-sm ${careerLoading ? "animate-spin" : ""}`} style={careerLoading ? { animationDuration: "1.5s" } : {}}>
+                  {careerLoading ? "progress_activity" : "psychology"}
+                </span>
+                {careerLoading ? "Analyzing..." : careerData ? "Re-analyze Career" : "Analyze My Career"}
+              </button>
+              <button
+                onClick={runImproveResume}
+                disabled={improverLoading}
+                className="flex items-center gap-space-xs px-space-md py-space-sm rounded-xl bg-emerald-600 text-white font-headline-sm text-body-sm font-bold shadow-md shadow-emerald-600/20 hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed relative z-10"
+              >
+                <span className={`material-symbols-outlined text-sm ${improverLoading ? "animate-spin" : ""}`} style={improverLoading ? { animationDuration: "1.5s" } : {}}>
+                  {improverLoading ? "progress_activity" : "auto_fix_high"}
+                </span>
+                {improverLoading ? "Improving..." : "Improve My Resume"}
               </button>
               <button
                 onClick={runAIAnalysis}
@@ -349,6 +410,143 @@ export default function ResumeAnalysis() {
           {resume.parsedText || "No parsed text available."}
         </pre>
       </div>
+
+      {/* AI Career Advisor Results */}
+      {careerData && (
+        <div className="rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200/80 p-space-lg shadow-sm">
+          <div className="flex items-center gap-space-sm mb-space-lg">
+            <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center shadow-sm">
+              <span className="material-symbols-outlined text-white text-lg">psychology</span>
+            </div>
+            <div>
+              <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">AI Career Intelligence</h3>
+              <span className="font-code-telemetry text-[10px] text-purple-600 font-semibold uppercase">Career Advisor</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+            <div>
+              <h4 className="font-headline-sm text-body-lg font-bold text-on-surface mb-2">Best Career Direction</h4>
+              <div className="flex justify-between items-center bg-purple-100/50 p-4 rounded-xl border border-purple-200">
+                <span className="font-bold text-purple-900">{careerData.bestCareerArea?.name}</span>
+                <span className="font-extrabold text-purple-700 bg-purple-200 px-3 py-1 rounded-full text-sm">{careerData.bestCareerArea?.score}% Fit</span>
+              </div>
+              <p className="mt-3 text-sm text-on-surface-variant">{careerData.bestCareerArea?.reason}</p>
+              
+              <h4 className="font-headline-sm text-body-md font-bold text-on-surface mt-6 mb-3">Other Career Areas</h4>
+              <div className="flex flex-col gap-2">
+                {careerData.careerAreas?.map(area => (
+                  <div key={area.area} className="flex justify-between items-center border-b border-surface-container pb-2 text-sm">
+                    <span className="text-on-surface-variant">{area.area}</span>
+                    <span className="font-semibold text-purple-700">{area.score}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-headline-sm text-body-md font-bold text-on-surface mb-3 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span> Your Strengths
+              </h4>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {careerData.strengths?.map(s => (
+                  <span key={s} className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">✓ {s}</span>
+                ))}
+              </div>
+              
+              <h4 className="font-headline-sm text-body-md font-bold text-on-surface mb-3 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm text-amber-500">warning</span> Areas to Improve
+              </h4>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {careerData.skillGaps?.map(s => (
+                  <span key={s} className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-semibold">⚠ {s}</span>
+                ))}
+              </div>
+              
+              <h4 className="font-headline-sm text-body-md font-bold text-on-surface mb-3">Recommended Roadmap</h4>
+              <div className="flex flex-col gap-3">
+                {careerData.roadmap?.map((r, i) => (
+                  <div key={i} className="flex gap-3 text-sm">
+                    <span className="font-mono font-bold text-purple-600 mt-0.5">{String(i+1).padStart(2, '0')} →</span>
+                    <div>
+                      <strong className="text-on-surface">{r.phase}</strong>
+                      <p className="text-on-surface-variant text-xs mt-0.5">{r.reason}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Resume Improver Results */}
+      {improvedResume && (
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50 border border-emerald-200/80 p-space-lg shadow-sm">
+          <div className="flex items-center gap-space-sm mb-space-lg">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
+              <span className="material-symbols-outlined text-white text-lg">auto_fix_high</span>
+            </div>
+            <div>
+              <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">AI Resume Improvement</h3>
+              <span className="font-code-telemetry text-[10px] text-emerald-600 font-semibold uppercase">Resume Improver</span>
+            </div>
+          </div>
+
+          <div className="mb-6 flex justify-between items-center bg-emerald-100/50 p-4 rounded-xl border border-emerald-200">
+            <span className="font-bold text-emerald-900">Improved Overall Score</span>
+            <span className="font-extrabold text-emerald-700 text-xl">{improvedResume.overallScore}/100</span>
+          </div>
+          
+          <div className="space-y-6">
+            {improvedResume.summary?.improved && (
+              <div>
+                <h4 className="font-bold text-sm text-on-surface uppercase tracking-wider mb-3 border-b pb-1">Summary</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-lg">
+                    <span className="text-xs font-bold text-rose-600 uppercase">Before</span>
+                    <p className="text-sm text-on-surface-variant mt-1 line-through opacity-80">{improvedResume.summary.original || "None"}</p>
+                  </div>
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-lg">
+                    <span className="text-xs font-bold text-emerald-600 uppercase">After</span>
+                    <p className="text-sm text-on-surface-variant mt-1">{improvedResume.summary.improved}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-2 italic">Why: {improvedResume.summary.reason}</p>
+              </div>
+            )}
+            
+            {improvedResume.experience?.length > 0 && (
+              <div>
+                <h4 className="font-bold text-sm text-on-surface uppercase tracking-wider mb-3 border-b pb-1">Experience Highlights</h4>
+                <div className="space-y-4">
+                  {improvedResume.experience.map((exp, i) => (
+                    <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-rose-600 uppercase">Before</span>
+                        <p className="text-sm text-on-surface-variant mt-1 line-through opacity-80">{exp.original}</p>
+                      </div>
+                      <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-emerald-600 uppercase">After</span>
+                        <p className="text-sm text-on-surface-variant mt-1">{exp.improved}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 flex gap-3">
+              <button className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+                Accept Improvements
+              </button>
+              <button className="px-6 py-2 bg-surface-container-high text-on-surface rounded-xl font-bold hover:bg-surface-container-highest transition-colors" onClick={() => setImprovedResume(null)}>
+                Keep Original
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

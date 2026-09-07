@@ -149,10 +149,26 @@ async function analyzeResumeController(req, res) {
   }
 }
 
+async function improveResumeController(req, res) {
+  try {
+    const { improveResume } = require('../services/resume-improver.service');
+    // Verify ownership
+    await resumeService.getResumeById(req.params.resumeId, req.user.id);
+    
+    const jobDescription = req.body.jobDescription || "";
+    const improved = await improveResume(req.params.resumeId, jobDescription);
+    res.status(200).json({ status: 'success', data: improved });
+  } catch (error) {
+    const status = /not found|not configured|no parsed text/i.test(error.message) ? 400 : 502;
+    res.status(status).json({ status: 'error', message: error.message });
+  }
+}
+
 module.exports = {
   uploadResumeController,
   getUserResumesController,
   getResumeController,
   deleteResumeController,
   analyzeResumeController,
+  improveResumeController,
 };

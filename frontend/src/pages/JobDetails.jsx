@@ -26,6 +26,9 @@ export default function JobDetails() {
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState("");
 
+  const [improving, setImproving] = useState(false);
+  const [improvedResume, setImprovedResume] = useState(null);
+
   useEffect(() => {
     let active = true;
     Promise.all([
@@ -66,6 +69,23 @@ export default function JobDetails() {
       setError(e.response?.data?.message || "Match calculation failed.");
     } finally {
       setCalculating(false);
+    }
+  };
+
+  const optimizeResume = async () => {
+    if (!resumes[0]) {
+      setError("Upload a resume first to optimize it.");
+      return;
+    }
+    setImproving(true);
+    setError("");
+    try {
+      const res = await resumeAPI.improve(resumes[0].id, job?.description);
+      setImprovedResume(res.data?.data);
+    } catch (e) {
+      setError(e.response?.data?.message || "Resume optimization failed.");
+    } finally {
+      setImproving(false);
     }
   };
 
@@ -232,16 +252,78 @@ export default function JobDetails() {
           </div>
 
           {match ? (
-            <button className="btn-primary" onClick={() => navigate(`/matches/${match.id}`)} style={{ width: "100%", justifyContent: "center" }}>
+            <button className="btn-primary" onClick={() => navigate(`/matches/${match.id}`)} style={{ width: "100%", justifyContent: "center", marginBottom: 12 }}>
               View Full Match Audit
             </button>
           ) : (
-            <button className="btn-primary" onClick={calculate} disabled={calculating} style={{ width: "100%", justifyContent: "center" }}>
+            <button className="btn-primary" onClick={calculate} disabled={calculating} style={{ width: "100%", justifyContent: "center", marginBottom: 12 }}>
               {calculating ? "Calculating..." : "Calculate AI Match"}
             </button>
           )}
+
+          <button 
+            className="btn-secondary" 
+            onClick={optimizeResume} 
+            disabled={improving} 
+            style={{ width: "100%", justifyContent: "center", background: "#f8fafc", color: "#0f172a", border: "1px solid #cbd5e1" }}
+          >
+            {improving ? "Optimizing..." : "✨ Optimize Resume for This Job"}
+          </button>
         </div>
       </div>
+
+      {improvedResume && (
+        <div className="card mt-6" style={{ padding: 24, border: "1px solid #10b981", background: "#f0fdf4" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "#10b981", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              ✨
+            </div>
+            <div>
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#064e3b", margin: 0 }}>Job-Specific Resume Improvement</h3>
+              <p style={{ margin: 0, fontSize: 12, color: "#059669", fontWeight: 600 }}>Optimized for {job.title}</p>
+            </div>
+          </div>
+          
+          <div style={{ display: "grid", gap: 16 }}>
+            {improvedResume.summary?.improved && (
+              <div style={{ background: "white", padding: 16, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: 13, textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>Summary Improvements</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", marginBottom: 4, textTransform: "uppercase" }}>Original</div>
+                    <div style={{ fontSize: 13, color: "#64748b", textDecoration: "line-through" }}>{improvedResume.summary.original}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#10b981", marginBottom: 4, textTransform: "uppercase" }}>Improved for Job</div>
+                    <div style={{ fontSize: 13, color: "#0f172a" }}>{improvedResume.summary.improved}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, fontSize: 12, color: "#64748b", fontStyle: "italic" }}>Why: {improvedResume.summary.reason}</div>
+              </div>
+            )}
+
+            {improvedResume.experience?.length > 0 && (
+              <div style={{ background: "white", padding: 16, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: 13, textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>Experience Tweaks</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {improvedResume.experience.map((exp, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", marginBottom: 4, textTransform: "uppercase" }}>Original</div>
+                        <div style={{ fontSize: 13, color: "#64748b", textDecoration: "line-through" }}>{exp.original}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#10b981", marginBottom: 4, textTransform: "uppercase" }}>Improved for Job</div>
+                        <div style={{ fontSize: 13, color: "#0f172a" }}>{exp.improved}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

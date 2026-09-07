@@ -10,6 +10,7 @@ const {
   getResumeController,
   deleteResumeController,
   analyzeResumeController,
+  improveResumeController,
 } = require('../controllers/resume.controller');
 
 // Absolute path to uploads directory — works on both Windows dev and Render Linux
@@ -63,6 +64,9 @@ router.get('/:resumeId', getResumeController);
 
 // AI resume analysis
 router.post('/:resumeId/analyze-ai', analyzeResumeController);
+
+// Improve resume
+router.post('/:resumeId/improve', improveResumeController);
 
 // Delete resume
 router.delete('/:resumeId', deleteResumeController);

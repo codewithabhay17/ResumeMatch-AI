@@ -21,21 +21,33 @@ model User {
 }
 
 model Resume {
-  id              String        @id @default(cuid())
+  id              String          @id @default(cuid())
   userId          String
   fileName        String
   filePath        String
   fileSize        Int
   mimeType        String
   parsedText      String?
-  extractedSkills String[]      @default([])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  extractedSkills String[]        @default([])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   skills          ResumeSkill[]
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  careerAnalysis  CareerAnalysis?
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("resumes")
+}
+
+model CareerAnalysis {
+  id        String   @id @default(cuid())
+  resumeId  String   @unique
+  analysis  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@map("career_analysis")
 }
 
 model Skill {

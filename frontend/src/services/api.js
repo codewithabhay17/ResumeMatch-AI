@@ -160,6 +160,23 @@ export const resumeAPI = {
     apiClient.post(
       `/resumes/${resumeId}/analyze-ai`
     ),
+
+  improve: (resumeId, jobDescription) =>
+    apiClient.post(
+      `/resumes/${resumeId}/improve`,
+      { jobDescription }
+    ),
+};
+
+
+/* =========================================================
+   CAREER ADVISOR API
+========================================================= */
+
+export const careerAdvisorAPI = {
+  get: (resumeId) => apiClient.get(`/career-advisor/${resumeId}`),
+  analyze: (resumeId) => apiClient.post(`/career-advisor/analyze/${resumeId}`),
+  regenerate: (resumeId) => apiClient.post(`/career-advisor/regenerate/${resumeId}`),
 };
 
 

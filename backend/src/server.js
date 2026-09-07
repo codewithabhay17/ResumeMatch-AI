@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth.routes');
 const resumeRoutes = require('./routes/resume.routes');
 const jobRoutes = require('./routes/job.routes');
 const matchRoutes = require('./routes/match.routes');
+const careerRoutes = require('./routes/career-advisor.routes');
 
 // Import middleware
 const { errorHandler } = require('./middlewares/error.middleware');
@@ -62,6 +63,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/career-advisor', careerRoutes);
 
 // ─── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {
