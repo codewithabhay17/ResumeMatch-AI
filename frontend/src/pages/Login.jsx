@@ -5,7 +5,7 @@ import { validateEmail, validatePassword } from "../utils/validation";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithProvider } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -197,7 +197,7 @@ export default function Login() {
             type="button"
             onClick={async () => {
               try {
-                await useAuth().loginWithProvider('google');
+                await loginWithProvider('google');
               } catch (err) {
                 setError(err.message);
               }

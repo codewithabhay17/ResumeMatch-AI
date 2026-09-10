@@ -3,8 +3,11 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ForgotPassword() {
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-8">
@@ -46,14 +49,17 @@ export default function ForgotPassword() {
                 </p>
               </div>
 
-                <form onSubmit={async (e) => { 
+              <form onSubmit={async (e) => { 
                   e.preventDefault(); 
                   if (email) {
+                    setLoading(true);
                     try {
-                      await useAuth().resetPassword(email);
+                      await resetPassword(email);
                       setSent(true);
                     } catch (err) {
-                      console.error(err);
+                      setError(err.message || "Failed to send reset email.");
+                    } finally {
+                      setLoading(false);
                     }
                   } 
                 }} className="flex flex-col gap-5">
@@ -72,12 +78,22 @@ export default function ForgotPassword() {
                   </div>
                 </div>
 
+                {error && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-body-sm text-body-sm">
+                    <span className="material-symbols-outlined text-rose-500 text-base">error</span>
+                    {error}
+                  </div>
+                )}
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-space-xs py-3 rounded-xl bg-primary text-on-primary font-headline-sm text-body-md font-bold shadow-md shadow-primary/20 hover:opacity-90 transition-all"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-space-xs py-3 rounded-xl bg-primary text-on-primary font-headline-sm text-body-md font-bold shadow-md shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-60"
                 >
-                  <span className="material-symbols-outlined text-sm">send</span>
-                  Send Reset Link
+                  {loading ? (
+                    <><span className="material-symbols-outlined text-sm animate-spin" style={{ animationDuration: "1s" }}>progress_activity</span> Sending...</>
+                  ) : (
+                    <><span className="material-symbols-outlined text-sm">send</span> Send Reset Link</>
+                  )}
                 </button>
               </form>
             </div>

@@ -30,7 +30,7 @@ function PasswordStrength({ password }) {
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, loginWithProvider } = useAuth();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [agreed, setAgreed] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -260,7 +260,7 @@ export default function Register() {
             type="button"
             onClick={async () => {
               try {
-                await useAuth().loginWithProvider('google');
+                await loginWithProvider('google');
               } catch (err) {
                 setError(err.message);
               }

@@ -21,19 +21,23 @@ function PasswordStrength({ password }) {
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { updatePassword } = useAuth();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password && password === confirm) {
       try {
-        await useAuth().updatePassword(password);
+        await updatePassword(password);
         setDone(true);
       } catch (err) {
-        console.error(err);
+        setError(err.message || "Failed to update password.");
       }
+    } else if (password !== confirm) {
+      setError("Passwords do not match.");
     }
   };
 
