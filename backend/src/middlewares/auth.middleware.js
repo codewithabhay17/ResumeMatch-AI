@@ -18,9 +18,9 @@ const authenticate = (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Attach user info to request
+    // Attach user info to request (Supabase JWT uses 'sub' for user ID)
     req.user = {
-      id: decoded.id,
+      id: decoded.sub || decoded.id,
       email: decoded.email,
     };
 

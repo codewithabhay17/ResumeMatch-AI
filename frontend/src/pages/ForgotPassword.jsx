@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -45,7 +46,17 @@ export default function ForgotPassword() {
                 </p>
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); if (email) setSent(true); }} className="flex flex-col gap-5">
+                <form onSubmit={async (e) => { 
+                  e.preventDefault(); 
+                  if (email) {
+                    try {
+                      await useAuth().resetPassword(email);
+                      setSent(true);
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  } 
+                }} className="flex flex-col gap-5">
                 <div>
                   <label className="block font-body-sm text-body-sm font-semibold text-on-surface mb-2">Email Address</label>
                   <div className="relative">

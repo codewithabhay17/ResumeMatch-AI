@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function PasswordStrength({ password }) {
   const score = [password.length >= 8, /[A-Z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length;
@@ -24,10 +25,15 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [done, setDone] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password && password === confirm) {
-      setDone(true);
+      try {
+        await useAuth().updatePassword(password);
+        setDone(true);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
