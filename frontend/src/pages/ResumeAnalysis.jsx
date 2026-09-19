@@ -58,6 +58,12 @@ export default function ResumeAnalysis() {
   const [improverLoading, setImproverLoading] = useState(false);
   const [improverError, setImproverError] = useState("");
 
+  // Feature 3: Humanize Resume
+  const [humanizedText, setHumanizedText] = useState(null);
+  const [humanizeLoading, setHumanizeLoading] = useState(false);
+  const [humanizeError, setHumanizeError] = useState("");
+  const [humanizeCopied, setHumanizeCopied] = useState(false);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -120,6 +126,26 @@ export default function ResumeAnalysis() {
     } finally {
       setImproverLoading(false);
     }
+  };
+
+  const runHumanizeResume = async () => {
+    setHumanizeLoading(true);
+    setHumanizeError("");
+    try {
+      const res = await resumeAPI.humanize(id);
+      setHumanizedText(res.data?.data);
+    } catch (err) {
+      setHumanizeError(err?.response?.data?.message || "Failed to humanize resume.");
+    } finally {
+      setHumanizeLoading(false);
+    }
+  };
+
+  const copyHumanized = async () => {
+    if (!humanizedText?.humanizedText) return;
+    await navigator.clipboard?.writeText(humanizedText.humanizedText);
+    setHumanizeCopied(true);
+    setTimeout(() => setHumanizeCopied(false), 1600);
   };
 
   if (loading) {
@@ -224,6 +250,16 @@ export default function ResumeAnalysis() {
                   {improverLoading ? "progress_activity" : "auto_fix_high"}
                 </span>
                 {improverLoading ? "Improving..." : "Improve My Resume"}
+              </button>
+              <button
+                onClick={runHumanizeResume}
+                disabled={humanizeLoading}
+                className="flex items-center gap-space-xs px-space-md py-space-sm rounded-xl bg-orange-500 text-white font-headline-sm text-body-sm font-bold shadow-md shadow-orange-500/20 hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed relative z-10"
+              >
+                <span className={`material-symbols-outlined text-sm ${humanizeLoading ? "animate-spin" : ""}`} style={humanizeLoading ? { animationDuration: "1.5s" } : {}}>
+                  {humanizeLoading ? "progress_activity" : "record_voice_over"}
+                </span>
+                {humanizeLoading ? "Humanizing..." : "Humanize My Resume"}
               </button>
               <button
                 onClick={runAIAnalysis}
@@ -545,6 +581,37 @@ export default function ResumeAnalysis() {
               </button>
             </div>
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Humanize Resume Results */}
+      {humanizedText && (
+        <div className="rounded-2xl bg-gradient-to-br from-orange-50 via-white to-orange-50 border border-orange-200/80 p-space-lg shadow-sm">
+          <div className="flex items-center gap-space-sm mb-space-lg">
+            <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm">
+              <span className="material-symbols-outlined text-white text-lg">record_voice_over</span>
+            </div>
+            <div>
+              <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">Humanized Resume Text</h3>
+              <span className="font-code-telemetry text-[10px] text-orange-600 font-semibold uppercase">AI Bypass & Natural Tone</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-space-md">
+            <span className="text-sm text-on-surface-variant font-medium">Ready to bypass AI detectors and sound like a real person.</span>
+            <button
+              onClick={copyHumanized}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-100 text-orange-800 font-code-telemetry text-[11px] font-semibold hover:bg-orange-200 transition-all"
+            >
+              <span className="material-symbols-outlined text-xs">{humanizeCopied ? "check" : "content_copy"}</span>
+              {humanizeCopied ? "Copied" : "Copy Rewritten Text"}
+            </button>
+          </div>
+          
+          <pre className="max-h-96 overflow-auto bg-surface-container-lowest border border-orange-200 rounded-xl p-space-md font-mono text-body-sm text-on-surface-variant whitespace-pre-wrap leading-relaxed">
+            {humanizedText.humanizedText}
+          </pre>
         </div>
       )}
     </div>

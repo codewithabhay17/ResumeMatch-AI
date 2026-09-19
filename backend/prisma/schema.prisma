@@ -16,6 +16,7 @@ model User {
   updatedAt    DateTime   @updatedAt
   matches      JobMatch[]
   resumes      Resume[]
+  reviews      Review[]
 
   @@map("users")
 }
@@ -122,4 +123,17 @@ model JobMatch {
   @@index([userId])
   @@index([jobId])
   @@map("job_matches")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("reviews")
 }

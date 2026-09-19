@@ -164,6 +164,20 @@ async function improveResumeController(req, res) {
   }
 }
 
+async function humanizeResumeController(req, res) {
+  try {
+    const { humanizeResume } = require('../services/humanize-resume.service');
+    // Verify ownership
+    await resumeService.getResumeById(req.params.resumeId, req.user.id);
+
+    const result = await humanizeResume(req.params.resumeId);
+    res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    const status = /not found|not configured|no parsed text/i.test(error.message) ? 400 : 502;
+    res.status(status).json({ status: 'error', message: error.message });
+  }
+}
+
 module.exports = {
   uploadResumeController,
   getUserResumesController,
@@ -171,4 +185,5 @@ module.exports = {
   deleteResumeController,
   analyzeResumeController,
   improveResumeController,
+  humanizeResumeController,
 };

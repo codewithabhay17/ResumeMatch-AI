@@ -166,6 +166,11 @@ export const resumeAPI = {
       `/resumes/${resumeId}/improve`,
       { jobDescription }
     ),
+
+  humanize: (resumeId) =>
+    apiClient.post(
+      `/resumes/${resumeId}/humanize`
+    ),
 };
 
 
@@ -278,6 +283,24 @@ export const matchAPI = {
         resumeId,
       }
     ),
+};
+/* =========================================================
+   REVIEW API
+========================================================= */
+
+export const reviewAPI = {
+  getAll: () =>
+    apiClient.get("/reviews"),
+
+  create: (rating, comment, userName) =>
+    apiClient.post("/reviews", {
+      rating,
+      comment,
+      userName,
+    }),
+
+  delete: (reviewId) =>
+    apiClient.delete(`/reviews/${reviewId}`),
 };
 
 

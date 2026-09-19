@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { reviewAPI } from "../services/api";
 
 function FloatingCard({ style, className, children }) {
   return (
@@ -189,6 +191,65 @@ const testimonials = [
 
 export default function Landing() {
   const navigate = useNavigate();
+
+  // Review state
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewName, setReviewName] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+
+  useEffect(() => {
+    reviewAPI.getAll()
+      .then((res) => setReviews(res.data?.data || []))
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false));
+  }, []);
+
+  const submitReview = async () => {
+    if (!reviewComment.trim()) {
+      setReviewError("Please write a comment");
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError("");
+    try {
+      const res = await reviewAPI.create(reviewRating, reviewComment, reviewName || "Anonymous");
+      setReviews((prev) => [res.data?.data, ...prev]);
+      setShowReviewModal(false);
+      setReviewComment("");
+      setReviewRating(5);
+      setReviewName("");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to submit review. Please make sure you're logged in.";
+      setReviewError(msg);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const StarRating = ({ value, onChange, size = 20 }) => (
+    <div style={{ display: "flex", gap: 4, cursor: onChange ? "pointer" : "default" }}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill={star <= value ? "#F4A340" : "none"}
+          stroke={star <= value ? "#F4A340" : "#D1D1D1"}
+          strokeWidth="1.5"
+          onClick={() => onChange && onChange(star)}
+          style={{ transition: "all 0.15s" }}
+        >
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#F7F7F5", fontFamily: "var(--font-sans)" }}>
@@ -388,6 +449,210 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      {/* ========================= USER REVIEWS SECTION ========================= */}
+      <section style={{ padding: "80px 40px", background: "white", borderTop: "1px solid #E7E5E2" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 40, fontWeight: 800, color: "#171717", letterSpacing: "-0.02em", marginBottom: 12 }}>
+              What Our Users Say
+            </h2>
+            <p style={{ fontSize: 17, color: "#666666", marginBottom: 24 }}>
+              Hear from people who have used ResuMatch AI to boost their careers.
+            </p>
+            <button
+              onClick={() => {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                  navigate("/login");
+                } else {
+                  setShowReviewModal(true);
+                }
+              }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "12px 28px",
+                background: "linear-gradient(135deg, #6C5CE7, #8B7CF6)",
+                color: "white",
+                border: "none",
+                borderRadius: 12,
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 16px rgba(108,92,231,0.3)",
+                transition: "all 0.2s",
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              Write a Review
+            </button>
+          </div>
+
+          {reviewsLoading ? (
+            <div style={{ textAlign: "center", padding: 40, color: "#8A8A8A" }}>Loading reviews...</div>
+          ) : reviews.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 40, color: "#8A8A8A", fontSize: 15 }}>
+              No reviews yet. Be the first to share your experience!
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+              {reviews.map((r) => (
+                <div key={r.id} style={{
+                  background: "rgba(255,255,255,0.95)",
+                  border: "1px solid #E7E5E2",
+                  borderRadius: 16,
+                  padding: 24,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  transition: "box-shadow 0.2s",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <StarRating value={r.rating} size={16} />
+                    <span style={{ fontSize: 11, color: "#B8B5AF" }}>
+                      {new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 14, lineHeight: 1.7, color: "#444444", marginBottom: 16 }}>
+                    "{r.comment}"
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      background: `hsl(${(r.userName || "A").charCodeAt(0) * 15 % 360}, 55%, 55%)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "white", fontWeight: 700, fontSize: 13,
+                    }}>
+                      {(r.userName || "A").charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: "#171717" }}>{r.userName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setShowReviewModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: 20,
+              padding: 32,
+              width: "100%",
+              maxWidth: 480,
+              boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "#171717", marginBottom: 8 }}>
+              Share Your Experience
+            </h3>
+            <p style={{ fontSize: 14, color: "#666666", marginBottom: 24 }}>
+              Your review helps others discover ResuMatch AI.
+            </p>
+
+            {/* Name */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#444444", display: "block", marginBottom: 6 }}>Your Name</label>
+              <input
+                type="text"
+                value={reviewName}
+                onChange={(e) => setReviewName(e.target.value)}
+                placeholder="Enter your name"
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  border: "1px solid #E7E5E2",
+                  borderRadius: 10, fontSize: 14,
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {/* Rating */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#444444", display: "block", marginBottom: 8 }}>Rating</label>
+              <StarRating value={reviewRating} onChange={setReviewRating} size={28} />
+            </div>
+
+            {/* Comment */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#444444", display: "block", marginBottom: 6 }}>Your Review</label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Tell us about your experience..."
+                rows={4}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  border: "1px solid #E7E5E2",
+                  borderRadius: 10, fontSize: 14,
+                  outline: "none",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  transition: "border-color 0.2s",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {reviewError && (
+              <p style={{ fontSize: 13, color: "#E53E3E", marginBottom: 12 }}>{reviewError}</p>
+            )}
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={submitReview}
+                disabled={reviewSubmitting}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  background: reviewSubmitting ? "#B8B5AF" : "linear-gradient(135deg, #6C5CE7, #8B7CF6)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: reviewSubmitting ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {reviewSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                style={{
+                  padding: "12px 20px",
+                  background: "#F7F7F5",
+                  color: "#666666",
+                  border: "1px solid #E7E5E2",
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Final CTA */}
       <section style={{
