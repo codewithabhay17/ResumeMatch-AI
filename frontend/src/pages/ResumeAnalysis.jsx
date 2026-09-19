@@ -581,7 +581,6 @@ export default function ResumeAnalysis() {
               </button>
             </div>
           </div>
-          </div>
         </div>
       )}
 
