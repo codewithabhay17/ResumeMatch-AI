@@ -19,12 +19,9 @@ const apiClient = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    // Rely on AuthContext which correctly sets apiClient.defaults.headers.common["Authorization"]
+    // Removing the buggy localStorage fallback that overwrote valid Supabase tokens.
 
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
 
     console.log(
       "API REQUEST:",

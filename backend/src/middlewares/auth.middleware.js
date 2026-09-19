@@ -16,7 +16,23 @@ const authenticate = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    console.log('[Auth] Token length:', token.length);
+    // console.log('[Auth] Token prefix:', token.substring(0, 15));
+    // console.log('[Auth] Secret length:', process.env.JWT_SECRET?.length);
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      console.log('[Auth] Standard verify failed:', err.message);
+      // Try decoding base64 if standard string verification fails (common with new Supabase secrets)
+      // Some Supabase JWT secrets are base64 encoded strings
+      // if it ends with ==
+      console.log('[Auth] Trying Base64 decode for secret...');
+      const secretBytes = Buffer.from(process.env.JWT_SECRET, 'base64');
+      decoded = jwt.verify(token, secretBytes);
+    }
 
     // Attach user info to request (Supabase JWT uses 'sub' for user ID)
     req.user = {
@@ -29,7 +45,7 @@ const authenticate = (req, res, next) => {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         status: 'error',
-        message: 'Invalid token.',
+        message: `Invalid token. Reason: ${error.message}`,
       });
     }
     if (error.name === 'TokenExpiredError') {
