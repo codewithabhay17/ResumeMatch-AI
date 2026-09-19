@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { reviewAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 function FloatingCard({ style, className, children }) {
   return (
@@ -191,6 +192,7 @@ const testimonials = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   // Review state
   const [reviews, setReviews] = useState([]);
@@ -462,8 +464,7 @@ export default function Landing() {
             </p>
             <button
               onClick={() => {
-                const token = localStorage.getItem("token");
-                if (!token) {
+                if (!isAuthenticated) {
                   navigate("/login");
                 } else {
                   setShowReviewModal(true);
