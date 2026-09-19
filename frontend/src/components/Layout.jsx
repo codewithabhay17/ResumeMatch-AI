@@ -30,7 +30,7 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest/95 backdrop-blur-2xl z-50 hidden md:flex flex-col justify-between border-r border-surface-container shadow-sm">
         <div className="flex flex-col">
-          <div className="h-16 px-space-md flex items-center gap-space-sm border-b border-surface-container">
+          <div onClick={() => navigate("/")} className="h-16 px-space-md flex items-center gap-space-sm border-b border-surface-container cursor-pointer hover:bg-surface-container-low transition-colors">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md">
               <span className="material-symbols-outlined text-white text-lg">auto_awesome</span>
             </div>
@@ -101,6 +101,10 @@ export default function Layout() {
               </div>
             </div>
           </div>
+          <button onClick={() => navigate("/")} className="flex items-center gap-space-xs px-space-sm py-2 rounded-lg text-purple-600 hover:bg-purple-50 transition-all font-body-md font-medium w-full text-left">
+            <span className="material-symbols-outlined text-lg">rate_review</span>
+            <span>Write a Review</span>
+          </button>
           <button onClick={handleLogout} className="flex items-center gap-space-xs px-space-sm py-2 rounded-lg text-on-error-container hover:bg-error-container/50 transition-all font-body-md font-medium w-full text-left">
             <span className="material-symbols-outlined text-lg">logout</span>
             <span>Sign Out</span>
