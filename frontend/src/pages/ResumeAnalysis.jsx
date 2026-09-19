@@ -148,6 +148,69 @@ export default function ResumeAnalysis() {
     setTimeout(() => setHumanizeCopied(false), 1600);
   };
 
+  const downloadPDF = async (text, filename) => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF();
+      const marginLeft = 15;
+      const marginTop = 20;
+      const lineSpacing = 7;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const maxLineWidth = pageWidth - marginLeft * 2;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      
+      const splitText = doc.splitTextToSize(text, maxLineWidth);
+      let y = marginTop;
+      
+      for (let i = 0; i < splitText.length; i++) {
+        if (y > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          y = marginTop;
+        }
+        doc.text(splitText[i], marginLeft, y);
+        y += lineSpacing;
+      }
+      
+      doc.save(filename);
+    } catch (e) {
+      console.error("PDF generation failed", e);
+      alert("Failed to generate PDF. Make sure to run 'npm install jspdf'");
+    }
+  };
+
+  const acceptImprovements = () => {
+    if (!improvedResume || !resume?.parsedText) return;
+    
+    let newText = resume.parsedText;
+    
+    // Replace summary
+    if (improvedResume.summary?.original && improvedResume.summary?.improved) {
+      newText = newText.replace(improvedResume.summary.original, improvedResume.summary.improved);
+    }
+    
+    // Replace experience
+    if (improvedResume.experience?.length) {
+      improvedResume.experience.forEach(exp => {
+        if (exp.original && exp.improved) {
+          newText = newText.replace(exp.original, exp.improved);
+        }
+      });
+    }
+
+    // Replace projects
+    if (improvedResume.projects?.length) {
+      improvedResume.projects.forEach(proj => {
+        if (proj.original && proj.improved) {
+          newText = newText.replace(proj.original, proj.improved);
+        }
+      });
+    }
+
+    downloadPDF(newText, `Improved_${resume.fileName || "Resume.pdf"}`);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-space-md">
@@ -210,20 +273,20 @@ export default function ResumeAnalysis() {
             My Resumes
           </button>
 
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-space-md">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-md mt-4">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-space-xs mb-3">
                 <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
                 <span className="font-code-telemetry text-[11px] font-bold uppercase text-sky-700 tracking-wider">Resume Intelligence Report</span>
               </div>
-              <h1 className="font-headline-lg text-headline-lg font-extrabold text-on-surface tracking-tight">Resume Analysis</h1>
-              <p className="font-body-md text-body-md text-on-surface-variant mt-1 flex items-center gap-2">
+              <h1 className="font-headline-lg text-headline-lg font-extrabold text-on-surface tracking-tight truncate">Resume Analysis</h1>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1 flex items-center gap-2 truncate">
                 <span className="material-symbols-outlined text-sm text-primary">description</span>
                 {resume.fileName}
               </p>
             </div>
 
-            <div className="flex gap-space-sm flex-wrap shrink-0">
+            <div className="flex gap-space-sm flex-wrap justify-start md:justify-end max-w-full">
               <button
                 onClick={copyText}
                 className="flex items-center gap-space-xs px-space-md py-space-sm rounded-xl bg-surface-container-low border border-surface-container text-on-surface font-headline-sm text-body-sm font-semibold hover:bg-surface-container transition-all"
@@ -573,11 +636,12 @@ export default function ResumeAnalysis() {
             )}
 
             <div className="mt-8 flex gap-3">
-              <button className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors">
-                Accept Improvements
+              <button onClick={acceptImprovements} className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+                <span className="material-symbols-outlined text-sm">download</span>
+                Download Improved PDF
               </button>
               <button className="px-6 py-2 bg-surface-container-high text-on-surface rounded-xl font-bold hover:bg-surface-container-highest transition-colors" onClick={() => setImprovedResume(null)}>
-                Keep Original
+                Discard
               </button>
             </div>
           </div>
@@ -599,13 +663,22 @@ export default function ResumeAnalysis() {
 
           <div className="flex justify-between items-center mb-space-md">
             <span className="text-sm text-on-surface-variant font-medium">Ready to bypass AI detectors and sound like a real person.</span>
-            <button
-              onClick={copyHumanized}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-100 text-orange-800 font-code-telemetry text-[11px] font-semibold hover:bg-orange-200 transition-all"
-            >
-              <span className="material-symbols-outlined text-xs">{humanizeCopied ? "check" : "content_copy"}</span>
-              {humanizeCopied ? "Copied" : "Copy Rewritten Text"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadPDF(humanizedText.humanizedText, `Humanized_${resume.fileName || "Resume.pdf"}`)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-600 text-white font-code-telemetry text-[11px] font-semibold hover:bg-orange-700 transition-all"
+              >
+                <span className="material-symbols-outlined text-xs">download</span>
+                Download PDF
+              </button>
+              <button
+                onClick={copyHumanized}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-100 text-orange-800 font-code-telemetry text-[11px] font-semibold hover:bg-orange-200 transition-all"
+              >
+                <span className="material-symbols-outlined text-xs">{humanizeCopied ? "check" : "content_copy"}</span>
+                {humanizeCopied ? "Copied" : "Copy Text"}
+              </button>
+            </div>
           </div>
           
           <pre className="max-h-96 overflow-auto bg-surface-container-lowest border border-orange-200 rounded-xl p-space-md font-mono text-body-sm text-on-surface-variant whitespace-pre-wrap leading-relaxed">
