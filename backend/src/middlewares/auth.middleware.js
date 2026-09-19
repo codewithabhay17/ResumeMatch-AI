@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
  * Middleware to protect routes.
  * Verifies the JWT token from the Authorization header.
  */
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -17,47 +17,51 @@ const authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     
-    console.log('[Auth] Token length:', token.length);
-    // console.log('[Auth] Token prefix:', token.substring(0, 15));
-    // console.log('[Auth] Secret length:', process.env.JWT_SECRET?.length);
+    // Supabase has migrated to RS256 signing keys for new projects.
+    // Standard jsonwebtoken with a symmetric secret (HS256) will throw "invalid algorithm".
+    // The most robust way to verify is to use the Supabase Auth API.
     
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      console.log('[Auth] Standard verify failed:', err.message);
-      // Try decoding base64 if standard string verification fails (common with new Supabase secrets)
-      // Some Supabase JWT secrets are base64 encoded strings
-      // if it ends with ==
-      console.log('[Auth] Trying Base64 decode for secret...');
-      const secretBytes = Buffer.from(process.env.JWT_SECRET, 'base64');
-      decoded = jwt.verify(token, secretBytes);
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Backend is missing SUPABASE_URL or SUPABASE_ANON_KEY in environment variables. Please add them to your backend .env file or hosting provider.',
+      });
     }
 
-    // Attach user info to request (Supabase JWT uses 'sub' for user ID)
+    const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, ''); // remove trailing slash if any
+    
+    // Call Supabase to verify the token and get the user
+    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': process.env.SUPABASE_ANON_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid token or session expired.',
+        details: errorData,
+      });
+    }
+
+    const userData = await response.json();
+
+    // Attach user info to request
     req.user = {
-      id: decoded.sub || decoded.id,
-      email: decoded.email,
+      id: userData.id,
+      email: userData.email,
     };
 
     next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        status: 'error',
-        message: `Invalid token. Reason: ${error.message}`,
-      });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Token expired. Please log in again.',
-      });
-    }
-
+    console.error('[Auth Middleware Error]:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Internal server error',
+      message: 'Internal server error during authentication.',
     });
   }
 };
